@@ -131,11 +131,11 @@ resource "azurerm_linux_virtual_machine" "main" {
   }
 
   source_image_reference {
-  publisher = "Canonical"
-  offer     = "UbuntuServer"
-  sku       = "22_04-lts"
-  version   = "latest"
-}
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = var.vm_image
+    version   = "latest"
+  }
 }
 
 # Local pentru IP privat VM2 (index 1)
