@@ -9,19 +9,18 @@ variable "vm_size" {
 variable "vm_image" {
   default = "22_04-lts"
 }
+
 variable "admin_password" {
   description = "Parola pentru utilizatorul admin"
   type        = string
   sensitive   = true
 }
 
-
 locals {
   prefix         = "mada"
   admin_username = "mada"
-  admin_password =  var.admin_password
-
 }
+
 terraform {
   required_providers {
     azurerm = {
@@ -33,8 +32,6 @@ terraform {
 
 provider "azurerm" {
   features {}
-
-  
 }
 
 resource "azurerm_resource_group" "rg1" {
@@ -56,29 +53,6 @@ resource "azurerm_subnet" "subnet" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
-resource "azurerm_network_interface" "main" {
-  count               = var.vm_count
-  name                = "${local.prefix}-nic-${count.index}"
-  location            = azurerm_resource_group.rg1.location
-  resource_group_name = azurerm_resource_group.rg1.name
-
-  ip_configuration {
-    name                          = "ipconfig-${count.index}"
-    subnet_id                     = azurerm_subnet.subnet.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.main[count.index].id
-  }
-}
-
-resource "azurerm_public_ip" "main" {
-  count               = var.vm_count
-  name                = "${local.prefix}-publicip-${count.index}"
-  location            = azurerm_resource_group.rg1.location
-  resource_group_name = azurerm_resource_group.rg1.name
-  allocation_method   = "Static"
-  sku                 = "Standard"
-}
-
 resource "azurerm_network_security_group" "nsg" {
   name                = "${local.prefix}-nsg"
   location            = azurerm_resource_group.rg1.location
@@ -95,6 +69,42 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+
+  # Permitem ICMP pentru ping (Protocol=Icmp)
+  security_rule {
+    name                       = "AllowICMP"
+    priority                   = 1002
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Icmp"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
+resource "azurerm_public_ip" "main" {
+  count               = var.vm_count
+  name                = "${local.prefix}-publicip-${count.index}"
+  location            = azurerm_resource_group.rg1.location
+  resource_group_name = azurerm_resource_group.rg1.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+}
+
+resource "azurerm_network_interface" "main" {
+  count               = var.vm_count
+  name                = "${local.prefix}-nic-${count.index}"
+  location            = azurerm_resource_group.rg1.location
+  resource_group_name = azurerm_resource_group.rg1.name
+
+  ip_configuration {
+    name                          = "ipconfig-${count.index}"
+    subnet_id                     = azurerm_subnet.subnet.id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.main[count.index].id
+  }
 }
 
 resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
@@ -110,22 +120,27 @@ resource "azurerm_linux_virtual_machine" "main" {
   location            = azurerm_resource_group.rg1.location
   size                = var.vm_size
   admin_username      = local.admin_username
-  admin_password      = local.admin_password
+  admin_password      = var.admin_password
   disable_password_authentication = false
   network_interface_ids = [azurerm_network_interface.main[count.index].id]
 
   os_disk {
-    name              = "disk-${count.index}"
-    caching           = "ReadWrite"
+    name                 = "disk-${count.index}"
+    caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
 
   source_image_reference {
     publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
+    offer     = "UbuntuServer"
     sku       = var.vm_image
     version   = "latest"
   }
+}
+
+# Local pentru IP privat VM2 (index 1)
+locals {
+  vm2_private_ip = azurerm_network_interface.main[1].private_ip_address
 }
 
 resource "null_resource" "ping_between_vms" {
@@ -134,12 +149,28 @@ resource "null_resource" "ping_between_vms" {
   connection {
     host     = azurerm_public_ip.main[0].ip_address
     user     = local.admin_username
-    password = local.admin_password
+    password = var.admin_password
   }
 
   provisioner "remote-exec" {
     inline = [
-      "ping -c 4 ${azurerm_network_interface.main[1].private_ip_address}"
+      "ping -c 4 ${local.vm2_private_ip}"
     ]
   }
+}
+
+output "public_ip_vm1" {
+  value = azurerm_public_ip.main[0].ip_address
+}
+
+output "public_ip_vm2" {
+  value = azurerm_public_ip.main[1].ip_address
+}
+
+output "private_ip_vm1" {
+  value = azurerm_network_interface.main[0].private_ip_address
+}
+
+output "private_ip_vm2" {
+  value = azurerm_network_interface.main[1].private_ip_address
 }

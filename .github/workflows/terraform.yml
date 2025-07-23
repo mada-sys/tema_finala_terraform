@@ -1,4 +1,4 @@
-name: Terraform Init & Plan Workflow
+name: Terraform Plan & Apply Workflow
 
 on:
   push:
@@ -6,14 +6,15 @@ on:
   workflow_dispatch:
 
 jobs:
-  terraform-plan:
+  terraform:
     runs-on: ubuntu-latest
 
     env:
       ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
       ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      TF_VAR_admin_password: ${{ secrets.ADMIN_PASSWORD }}
 
     steps:
       - name: Checkout code
@@ -27,3 +28,6 @@ jobs:
 
       - name: Terraform Plan
         run: terraform plan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
