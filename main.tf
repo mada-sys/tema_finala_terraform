@@ -34,29 +34,29 @@ provider "azurerm" {
   features {}
 }
 
-resource "azurerm_resource_group" "rg10" {
-  name     = "${local.prefix}-rg10"
+resource "azurerm_resource_group" "rg11" { # Modificat de la rg10 la rg11
+  name     = "${local.prefix}-rg11" # Modificat de la rg10 la rg11
   location = "West Europe"
 }
 
 resource "azurerm_virtual_network" "vnet" {
   name                = "${local.prefix}-vnet"
   address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.rg10.location
-  resource_group_name = azurerm_resource_group.rg10.name
+  location            = azurerm_resource_group.rg11.location # Modificat de la rg10 la rg11
+  resource_group_name = azurerm_resource_group.rg11.name     # Modificat de la rg10 la rg11
 }
 
 resource "azurerm_subnet" "subnet" {
   name                 = "${local.prefix}-subnet"
-  resource_group_name  = azurerm_resource_group.rg10.name
+  resource_group_name  = azurerm_resource_group.rg11.name # Modificat de la rg10 la rg11
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
 }
 
 resource "azurerm_network_security_group" "nsg" {
   name                = "${local.prefix}-nsg"
-  location            = azurerm_resource_group.rg10.location
-  resource_group_name = azurerm_resource_group.rg10.name
+  location            = azurerm_resource_group.rg11.location # Modificat de la rg10 la rg11
+  resource_group_name = azurerm_resource_group.rg11.name     # Modificat de la rg10 la rg11
 
   security_rule {
     name                       = "AllowSSH"
@@ -86,8 +86,8 @@ resource "azurerm_network_security_group" "nsg" {
 resource "azurerm_public_ip" "main" {
   count               = 1
   name                = "${local.prefix}-publicip-0"
-  location            = azurerm_resource_group.rg10.location
-  resource_group_name = azurerm_resource_group.rg10.name
+  location            = azurerm_resource_group.rg11.location # Modificat de la rg10 la rg11
+  resource_group_name = azurerm_resource_group.rg11.name     # Modificat de la rg10 la rg11
   allocation_method   = "Static"
   sku                 = "Standard"
 }
@@ -95,8 +95,8 @@ resource "azurerm_public_ip" "main" {
 resource "azurerm_network_interface" "main" {
   count               = var.vm_count
   name                = "${local.prefix}-nic-${count.index}"
-  location            = azurerm_resource_group.rg10.location
-  resource_group_name = azurerm_resource_group.rg10.name
+  location            = azurerm_resource_group.rg11.location # Modificat de la rg10 la rg11
+  resource_group_name = azurerm_resource_group.rg11.name     # Modificat de la rg10 la rg11
 
   ip_configuration {
     name                          = "ipconfig-${count.index}"
@@ -115,8 +115,8 @@ resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
 resource "azurerm_linux_virtual_machine" "main" {
   count                       = var.vm_count
   name                        = "${local.prefix}-vm-${count.index}"
-  resource_group_name         = azurerm_resource_group.rg10.name
-  location                    = azurerm_resource_group.rg10.location
+  resource_group_name         = azurerm_resource_group.rg11.name     # Modificat de la rg10 la rg11
+  location                    = azurerm_resource_group.rg11.location # Modificat de la rg10 la rg11
   size                        = var.vm_size
   admin_username              = local.admin_username
   admin_password              = var.admin_password
@@ -132,8 +132,8 @@ resource "azurerm_linux_virtual_machine" "main" {
   source_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
-    sku       = "22.04-LTS" # <--- IMPORTANT: Changed SKU to common '22.04-LTS' (no underscore)
-    version   = "latest"    # <--- Reverting to 'latest' with the more reliable SKU
+    sku       = "22.04-LTS"
+    version   = "latest"
   }
 }
 
