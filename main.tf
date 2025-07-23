@@ -132,8 +132,8 @@ resource "azurerm_linux_virtual_machine" "main" {
   source_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
-    sku       = "22_04-lts"
-    version   = "22.04.20250720" # <--- ACEASTA ESTE VERSIUNEA CORECTĂ ȘI CONFIRMATĂ ACUM
+    sku       = "22.04-LTS" # <--- IMPORTANT: Changed SKU to common '22.04-LTS' (no underscore)
+    version   = "latest"    # <--- Reverting to 'latest' with the more reliable SKU
   }
 }
 
