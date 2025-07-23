@@ -34,29 +34,29 @@ provider "azurerm" {
   features {}
 }
 
-resource "azurerm_resource_group" "rgm" {
-  name     = "${local.prefix}-rgm"
+resource "azurerm_resource_group" "rgf" {
+  name     = "${local.prefix}-rgf"
   location = "West Europe"
 }
 
 resource "azurerm_virtual_network" "vnet" {
   name                = "${local.prefix}-vnet"
   address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.rgm.location
-  resource_group_name = azurerm_resource_group.rgm.name
+  location            = azurerm_resource_group.rgf.location
+  resource_group_name = azurerm_resource_group.rgf.name
 }
 
 resource "azurerm_subnet" "subnet" {
   name                 = "${local.prefix}-subnet"
-  resource_group_name  = azurerm_resource_group.rgm.name
+  resource_group_name  = azurerm_resource_group.rgf.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
 }
 
 resource "azurerm_network_security_group" "nsg" {
   name                = "${local.prefix}-nsg"
-  location            = azurerm_resource_group.rgm.location
-  resource_group_name = azurerm_resource_group.rgm.name
+  location            = azurerm_resource_group.rgf.location
+  resource_group_name = azurerm_resource_group.rgf.name
 
   security_rule {
     name                       = "AllowSSH"
@@ -70,7 +70,6 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
-  # Permitem ICMP pentru ping (Protocol=Icmp)
   security_rule {
     name                       = "AllowICMP"
     priority                   = 1002
@@ -84,11 +83,12 @@ resource "azurerm_network_security_group" "nsg" {
   }
 }
 
+# Doar 1 IP public
 resource "azurerm_public_ip" "main" {
-  count               = var.vm_count
-  name                = "${local.prefix}-publicip-${count.index}"
-  location            = azurerm_resource_group.rgm.location
-  resource_group_name = azurerm_resource_group.rgm.name
+  count               = 1
+  name                = "${local.prefix}-publicip-0"
+  location            = azurerm_resource_group.rgf.location
+  resource_group_name = azurerm_resource_group.rgf.name
   allocation_method   = "Static"
   sku                 = "Standard"
 }
@@ -96,14 +96,14 @@ resource "azurerm_public_ip" "main" {
 resource "azurerm_network_interface" "main" {
   count               = var.vm_count
   name                = "${local.prefix}-nic-${count.index}"
-  location            = azurerm_resource_group.rgm.location
-  resource_group_name = azurerm_resource_group.rgm.name
+  location            = azurerm_resource_group.rgf.location
+  resource_group_name = azurerm_resource_group.rgf.name
 
   ip_configuration {
     name                          = "ipconfig-${count.index}"
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.main[count.index].id
+    public_ip_address_id          = count.index == 0 ? azurerm_public_ip.main[0].id : null
   }
 }
 
@@ -116,8 +116,8 @@ resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
 resource "azurerm_linux_virtual_machine" "main" {
   count               = var.vm_count
   name                = "${local.prefix}-vm-${count.index}"
-  resource_group_name = azurerm_resource_group.rgm.name
-  location            = azurerm_resource_group.rgm.location
+  resource_group_name = azurerm_resource_group.rgf.name
+  location            = azurerm_resource_group.rgf.location
   size                = var.vm_size
   admin_username      = local.admin_username
   admin_password      = var.admin_password
@@ -132,13 +132,12 @@ resource "azurerm_linux_virtual_machine" "main" {
 
   source_image_reference {
     publisher = "Canonical"
-    offer     = "UbuntuServer"
-    sku       ="22_04-lts-gen2"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts-gen2"
     version   = "latest"
   }
 }
 
-# Local pentru IP privat VM2 (index 1)
 locals {
   vm2_private_ip = azurerm_network_interface.main[1].private_ip_address
 }
@@ -161,10 +160,6 @@ resource "null_resource" "ping_between_vms" {
 
 output "public_ip_vm1" {
   value = azurerm_public_ip.main[0].ip_address
-}
-
-output "public_ip_vm2" {
-  value = azurerm_public_ip.main[1].ip_address
 }
 
 output "private_ip_vm1" {
