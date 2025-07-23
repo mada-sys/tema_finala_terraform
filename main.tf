@@ -34,29 +34,29 @@ provider "azurerm" {
   features {}
 }
 
-resource "azurerm_resource_group" "rg10" { # Changed from rg15 to rg16
-  name     = "${local.prefix}-rg10" # Changed from rg15 to rg16
+resource "azurerm_resource_group" "rg10" {
+  name     = "${local.prefix}-rg10"
   location = "West Europe"
 }
 
 resource "azurerm_virtual_network" "vnet" {
   name                = "${local.prefix}-vnet"
   address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.rg10.location # Changed from rg15 to rg16
-  resource_group_name = azurerm_resource_group.rg10.name     # Changed from rg15 to rg16
+  location            = azurerm_resource_group.rg10.location
+  resource_group_name = azurerm_resource_group.rg10.name
 }
 
 resource "azurerm_subnet" "subnet" {
   name                 = "${local.prefix}-subnet"
-  resource_group_name  = azurerm_resource_group.rg10.name # Changed from rg15 to rg16
+  resource_group_name  = azurerm_resource_group.rg10.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
 }
 
 resource "azurerm_network_security_group" "nsg" {
   name                = "${local.prefix}-nsg"
-  location            = azurerm_resource_group.rg10.location # Changed from rg15 to rg16
-  resource_group_name = azurerm_resource_group.rg10.name     # Changed from rg15 to rg16
+  location            = azurerm_resource_group.rg10.location
+  resource_group_name = azurerm_resource_group.rg10.name
 
   security_rule {
     name                       = "AllowSSH"
@@ -86,8 +86,8 @@ resource "azurerm_network_security_group" "nsg" {
 resource "azurerm_public_ip" "main" {
   count               = 1
   name                = "${local.prefix}-publicip-0"
-  location            = azurerm_resource_group.rg10.location # Changed from rg15 to rg16
-  resource_group_name = azurerm_resource_group.rg10.name     # Changed from rg15 to rg16
+  location            = azurerm_resource_group.rg10.location
+  resource_group_name = azurerm_resource_group.rg10.name
   allocation_method   = "Static"
   sku                 = "Standard"
 }
@@ -95,8 +95,8 @@ resource "azurerm_public_ip" "main" {
 resource "azurerm_network_interface" "main" {
   count               = var.vm_count
   name                = "${local.prefix}-nic-${count.index}"
-  location            = azurerm_resource_group.rg10.location # Changed from rg15 to rg16
-  resource_group_name = azurerm_resource_group.rg10.name     # Changed from rg15 to rg16
+  location            = azurerm_resource_group.rg10.location
+  resource_group_name = azurerm_resource_group.rg10.name
 
   ip_configuration {
     name                          = "ipconfig-${count.index}"
@@ -115,8 +115,8 @@ resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
 resource "azurerm_linux_virtual_machine" "main" {
   count                       = var.vm_count
   name                        = "${local.prefix}-vm-${count.index}"
-  resource_group_name         = azurerm_resource_group.rg10.name     # Changed from rg15 to rg16
-  location                    = azurerm_resource_group.rg10.location # Changed from rg15 to rg16
+  resource_group_name         = azurerm_resource_group.rg10.name
+  location                    = azurerm_resource_group.rg10.location
   size                        = var.vm_size
   admin_username              = local.admin_username
   admin_password              = var.admin_password
@@ -133,7 +133,7 @@ resource "azurerm_linux_virtual_machine" "main" {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "22_04-lts"
-    version   = "latest"
+    version   = "22.04.20250720" # <--- ACEASTA ESTE VERSIUNEA CORECTĂ ȘI CONFIRMATĂ ACUM
   }
 }
 
