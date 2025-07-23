@@ -9,12 +9,17 @@ variable "vm_size" {
 variable "vm_image" {
   default = "22_04-lts"
 }
+variable "admin_password" {
+  description = "Parola pentru utilizatorul admin"
+  type        = string
+  sensitive   = true
+}
 
 
 locals {
   prefix         = "mada"
   admin_username = "mada"
-
+  admin_password =  var.admin_password
 
 }
 terraform {
@@ -105,7 +110,7 @@ resource "azurerm_linux_virtual_machine" "main" {
   location            = azurerm_resource_group.rg1.location
   size                = var.vm_size
   admin_username      = local.admin_username
-
+  admin_password      = local.admin_password
   disable_password_authentication = false
   network_interface_ids = [azurerm_network_interface.main[count.index].id]
 
@@ -129,7 +134,7 @@ resource "null_resource" "ping_between_vms" {
   connection {
     host     = azurerm_public_ip.main[0].ip_address
     user     = local.admin_username
-
+    password = local.admin_password
   }
 
   provisioner "remote-exec" {
