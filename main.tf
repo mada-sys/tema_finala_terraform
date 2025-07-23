@@ -129,7 +129,7 @@ resource "null_resource" "ping_between_vms" {
   connection {
     host     = azurerm_public_ip.main[0].ip_address
     user     = local.admin_username
-    password = local.admin_password
+
   }
 
   provisioner "remote-exec" {
