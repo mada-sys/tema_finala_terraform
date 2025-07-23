@@ -34,29 +34,29 @@ provider "azurerm" {
   features {}
 }
 
-resource "azurerm_resource_group" "rg5" {
-  name     = "${local.prefix}-rg5"
+resource "azurerm_resource_group" "rgm" {
+  name     = "${local.prefix}-rgm"
   location = "West Europe"
 }
 
 resource "azurerm_virtual_network" "vnet" {
   name                = "${local.prefix}-vnet"
   address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.rg5.location
-  resource_group_name = azurerm_resource_group.rg5.name
+  location            = azurerm_resource_group.rgm.location
+  resource_group_name = azurerm_resource_group.rgm.name
 }
 
 resource "azurerm_subnet" "subnet" {
   name                 = "${local.prefix}-subnet"
-  resource_group_name  = azurerm_resource_group.rg5.name
+  resource_group_name  = azurerm_resource_group.rgm.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
 }
 
 resource "azurerm_network_security_group" "nsg" {
   name                = "${local.prefix}-nsg"
-  location            = azurerm_resource_group.rg5.location
-  resource_group_name = azurerm_resource_group.rg5.name
+  location            = azurerm_resource_group.rgm.location
+  resource_group_name = azurerm_resource_group.rgm.name
 
   security_rule {
     name                       = "AllowSSH"
@@ -87,8 +87,8 @@ resource "azurerm_network_security_group" "nsg" {
 resource "azurerm_public_ip" "main" {
   count               = var.vm_count
   name                = "${local.prefix}-publicip-${count.index}"
-  location            = azurerm_resource_group.rg5.location
-  resource_group_name = azurerm_resource_group.rg5.name
+  location            = azurerm_resource_group.rgm.location
+  resource_group_name = azurerm_resource_group.rgm.name
   allocation_method   = "Static"
   sku                 = "Standard"
 }
@@ -96,8 +96,8 @@ resource "azurerm_public_ip" "main" {
 resource "azurerm_network_interface" "main" {
   count               = var.vm_count
   name                = "${local.prefix}-nic-${count.index}"
-  location            = azurerm_resource_group.rg5.location
-  resource_group_name = azurerm_resource_group.rg5.name
+  location            = azurerm_resource_group.rgm.location
+  resource_group_name = azurerm_resource_group.rgm.name
 
   ip_configuration {
     name                          = "ipconfig-${count.index}"
@@ -116,8 +116,8 @@ resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
 resource "azurerm_linux_virtual_machine" "main" {
   count               = var.vm_count
   name                = "${local.prefix}-vm-${count.index}"
-  resource_group_name = azurerm_resource_group.rg5.name
-  location            = azurerm_resource_group.rg5.location
+  resource_group_name = azurerm_resource_group.rgm.name
+  location            = azurerm_resource_group.rgm.location
   size                = var.vm_size
   admin_username      = local.admin_username
   admin_password      = var.admin_password
