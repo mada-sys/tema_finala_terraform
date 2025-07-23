@@ -1,4 +1,4 @@
-name: Terraform Plan & Apply with Debug
+name: Terraform Plan & Apply Simple
 
 on:
   push:
@@ -6,8 +6,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  terraform-plan:
+  terraform:
     runs-on: ubuntu-latest
+
     env:
       ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
@@ -25,49 +26,8 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Terraform Plan
-        run: terraform plan -out=planfile
-        timeout-minutes: 10
-
-      - name: Upload planfile artifact (for debugging)
-        uses: actions/upload-artifact@v3
-        with:
-          name: terraform-planfile
-          path: planfile
-
-  terraform-apply:
-    needs: terraform-plan
-    runs-on: ubuntu-latest
-    env:
-      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      TF_VAR_admin_password: ${{ secrets.ADMIN_PASSWORD }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download planfile artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: terraform-planfile
-          path: .
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - name: Terraform Plan (save planfile)
+        run: terraform plan -out=tfplan
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve planfile
-        timeout-minutes: 20
-
-      - name: List VM Public IPs for debugging
-        run: |
-          az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID
-          az vm list-ip-addresses --resource-group mada-rg1 --query "[].virtualMachine.network.publicIpAddresses[*].ipAddress" -o tsv
-
-      - name: Ping VM2 from VM1 (SSH)
-        run: |
-          sshpass -p ${{ secrets.ADMIN_PASSWORD }} ssh -o StrictHostKeyChecking=no mada@$(az vm list-ip-addresses --resource-group mada-rg1 --name mada-vm-0 --query "[0].virtualMachine.network.privateIpAddresses[0]" -o tsv) "ping -c 4 $(az vm list-ip-addresses --resource-group mada-rg1 --name mada-vm-1 --query "[0].virtualMachine.network.privateIpAddresses[0]" -o tsv)"
-        # Folosește sshpass, poate trebuie să-l instalezi în pasul anterior dacă nu există implicit
+        run: terraform apply -auto-approve tfplan
