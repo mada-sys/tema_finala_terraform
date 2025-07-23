@@ -133,7 +133,7 @@ resource "azurerm_linux_virtual_machine" "main" {
   source_image_reference {
     publisher = "0001-com-ubuntu-server-jammy"
     offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts-gen2"
+    sku       = "22_04-lts"
     version   = "latest"
   }
 }
